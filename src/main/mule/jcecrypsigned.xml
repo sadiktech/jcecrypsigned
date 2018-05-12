@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:crypto="http://www.mulesoft.org/schema/mule/crypto"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/crypto http://www.mulesoft.org/schema/mule/crypto/current/mule-crypto.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="dc7095dd-e737-4182-845f-82693b2c1ce9" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<crypto:jce-config name="Crypto_Jce" doc:name="Crypto Jce" doc:id="4f1a5cc4-4860-4d8a-a6d4-531534bde97f" keystore="D:\Mule-Study\anypoint7workspace\jcecrypsigned\src\main\resources\signedJCE\aesKelltontech.jceks" password="123456" type="JCEKS">
+		<crypto:jce-key-infos >
+			<crypto:jce-symmetric-key-info keyId="jceSigned" alias="srccodes" password="123456" />
+		</crypto:jce-key-infos>
+	</crypto:jce-config>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="8893ff2f-6f5d-4870-ac9e-afbfe2ec295c" >
+		<vm:queues >
+			<vm:queue queueName="jceSignedVM" />
+		</vm:queues>
+	</vm:config>
+	<flow name="jcecrypsignedFlow" doc:id="b88b0591-d70f-42a7-b9a3-dae64346b45b" >
+		<http:listener doc:name="Listener" doc:id="11d42bbf-ec56-420a-897e-ddde5ad7a4cf" config-ref="HTTP_Listener_config" path="/jceSigned" allowedMethods="POST"/>
+		<crypto:jce-sign doc:name="Jce sign" doc:id="e662954c-3ddb-4fb2-a1e8-6f96a923d920" config-ref="Crypto_Jce" keyId="jceSigned" target="jceSigned"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f7857de8-606a-4726-88b0-79fb06b7f592" message="===========main flow final ============ &gt; #[payload]"/>
+		<vm:publish doc:name="Publish" doc:id="87e436b8-3aaa-4cdc-89d3-2092a827456d" config-ref="VM_Config" queueName="jceSignedVM" sendCorrelationId="ALWAYS" correlationId="#[vars.jceSigned]"/>
+	</flow>
+	<flow name="jcecrypsignedFlow1" doc:id="35529968-7f21-41fb-a47c-14d3e16cfb3f" >
+		<vm:listener doc:name="Listener" doc:id="234492d8-7df6-469c-a769-50d8e684c198" config-ref="VM_Config" queueName="jceSignedVM"/>
+		<crypto:jce-validate doc:name="Jce validate" doc:id="9e4b5259-7b59-450f-a7bc-7b7c73a6954d" config-ref="Crypto_Jce" expected="#[attributes.correlationId]" keyId="jceSigned"/>
+		<logger level="INFO" doc:name="Logger" doc:id="e2f8501b-0a86-4f4e-bfbc-b8c128534149" message="===========Second flow final ============ &gt; #[payload]"/>
+	</flow>
+</mule>
